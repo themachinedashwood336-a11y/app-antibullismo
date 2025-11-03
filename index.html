@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>App Anti-Bullismo Mobile - Versione 2.2</title>
+
+<!-- Librerie -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+:root{
+  --primary:#0284c7;
+  --primary-dark:#015f85;
+  --accent:#0369a1;
+  --bg:#e8f4fd;
+  --card-bg:#ffffff;
+  --muted:#9ca3af;
+  --danger:#ef4444;
+  --success:#84cc16;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin:0; padding:0; background:var(--bg); color:#053047;
+    -webkit-font-smoothing:antialiased;
+}
+header { 
+    background: linear-gradient(to right, var(--primary), #0369a1);
+    color:white; padding:14px 12px; text-align:left; font-size:1.1rem;
+    font-weight:700; box-shadow:0 2px 4px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between;
+    position:relative;
+}
+.header-title { margin:0; font-size:1.05rem; }
+.hamburger {
+    display:flex; align-items:center; gap:8px; cursor:pointer; padding:8px; border-radius:8px;
+    background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.06);
+}
+.hamburger:active{transform:scale(0.98)}
+
+/* Mobile overlay menu with animation */
+#mobileMenuOverlay {
+  position:fixed; top:64px; right:12px; width:260px; max-width:calc(100% - 24px);
+  background:var(--card-bg); border-radius:12px; box-shadow:0 14px 40px rgba(0,0,0,0.18);
+  z-index:2000; overflow:hidden;
+  transform-origin: top right;
+  transform: translateY(-10px) scale(0.98);
+  opacity:0;
+  pointer-events:none;
+  transition: transform .22s cubic-bezier(.2,.9,.2,1), opacity .22s ease;
+}
+#mobileMenuOverlay.open { transform: translateY(0) scale(1); opacity:1; pointer-events:auto; }
+#mobileMenuOverlay a { display:block; padding:12px 14px; border-bottom:1px solid #f1f5f9; color:var(--accent); text-decoration:none; font-weight:700; }
+#mobileMenuOverlay a:last-child { border-bottom:none; }
+
+/* Bottom navigation - visible on larger screens */
+nav {
+    display:flex; position:fixed; bottom:0; width:100%; background:var(--card-bg);
+    border-top:1px solid #ddd; z-index:1000; box-shadow:0 -2px 5px rgba(0,0,0,0.05);
+}
+nav button {
+    flex:1; padding:12px 0; color:var(--accent); border:none; font-size:0.9em;
+    font-weight:700; cursor:pointer; background:transparent; transition: color 0.2s, background 0.2s;
+}
+nav button:hover { background:#f8fbff; color:var(--primary); }
+nav button.active { background:#e6f6ff; color:var(--primary); font-weight:800; border-top:3px solid var(--primary); }
+
+/* Sections/cards */
+.container { padding:12px; padding-bottom:90px; max-width:980px; margin:0 auto; }
+.section { display:none; margin-top:8px; }
+.section.active { display:block; }
+.card {
+    background:var(--card-bg); border-radius:16px; padding:16px; margin-bottom:16px;
+    box-shadow:0 6px 14px rgba(0,0,0,0.06); border-left:5px solid var(--primary);
+}
+.card:hover { transform: translateY(-2px); transition: transform .15s ease; }
+
+h2 { color:var(--primary); border-bottom:2px solid #e0f2fe; padding-bottom:6px; margin-top:0; font-size:1.05rem; }
+h3 { color:var(--accent); margin:8px 0; }
+
+/* Inputs */
+button.primary {
+    background:var(--primary); color:white; border:none; padding:10px 12px; border-radius:25px;
+    cursor:pointer; margin:8px 0; width:100%; font-size:1rem; font-weight:700;
+}
+button.small {
+    padding:8px 10px; border-radius:10px; width:auto;
+}
+textarea,input[type="file"],input[type="text"],input[type="tel"],select,input[type="range"] {
+    width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc; font-size:1rem;
+}
+textarea:focus,input[type="text"]:focus,input[type="tel"]:focus,select:focus { border-color:var(--primary); outline:none; }
+
+/* Challenge list wrapper */
+.challenge-list { margin-top:8px; }
+
+/* Each challenge item (mobile-first friendly) */
+.challenge-item {
+  display:block;
+  background:#eaf6ff;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:10px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+}
+.challenge-item label {
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  cursor:pointer;
+  width:100%;
+  font-size:1rem;
+  line-height:1.35;
+}
+.challenge-item input[type="checkbox"] {
+  width:28px;
+  height:28px;
+  flex-shrink:0;
+  margin-top:4px;
+  accent-color:var(--primary);
+}
+.challenge-item .text {
+  display:block;
+  color:#053047;
+}
+.challenge-item .text b {
+  font-weight:800;
+  color:var(--accent);
+  margin-right:6px;
+}
+.challenge-item .text .rest {
+  font-weight:400;
+  color:#222;
+}
+
+/* Breathing exercise items reusing same style but distinct */
+.exercise-item { background:#fff; border-radius:12px; padding:10px; margin-bottom:10px; box-shadow:0 1px 0 rgba(0,0,0,0.02); }
+.exercise-item label { display:flex; gap:12px; align-items:flex-start; cursor:pointer; line-height:1.3; }
+.exercise-item input[type="checkbox"] { width:26px; height:26px; margin-top:3px; accent-color:var(--primary); }
+.exercise-item b { font-weight:700; color:var(--accent); margin-right:6px; }
+
+/* Fancy/legal */
+.fancy-list { padding-left:0; }
+.fancy-list li { background:none; border-left:none; padding:10px 0; display:flex; align-items:flex-start; border-bottom:1px dashed #eee; }
+.icon-bullet { min-width:30px; height:30px; margin-right:10px; background:var(--primary); color:white; border-radius:50%; text-align:center; line-height:30px; font-weight:bold; font-size:1.1em; flex-shrink:0; }
+.law-title { color:var(--danger); font-weight:700; border-bottom:2px solid var(--danger); padding-bottom:3px; margin-top:12px; margin-bottom:8px; font-size:1em; }
+.responsibility-section { background:#eaf6ff; padding:12px; border-radius:10px; border:1px solid var(--primary); margin-top:12px; }
+
+/* Dashboard small components */
+#medals { font-size:1.4em; display:block; margin-top:5px; }
+#streakChartContainer { width:120px; height:120px; margin:10px auto 0; }
+
+/* Small screens adjustments */
+@media (max-width:767px) {
+    header { padding:12px; position:fixed; top:0; left:0; right:0; z-index:1500; }
+    .container { padding-top:74px; padding-bottom:140px; }
+    nav { display:none; } /* hide bottom nav on mobile - hamburger used instead */
+    .hamburger { display:flex; }
+    #mobileMenuOverlay { top:56px; right:12px; width:90%; left:5%; max-width:none; }
+
+    .challenge-item { padding:14px; }
+    .challenge-item label { font-size:1rem; }
+    .exercise-item { padding:12px; }
+}
+
+/* Larger screens adjustments */
+@media (min-width:768px) {
+    header { position:static; }
+    .container { padding-top:12px; }
+    .hamburger { display:none; }
+    #mobileMenuOverlay { display:none !important; }
+
+    /* desktop: show challenge items in slightly different style with same markup */
+    .challenge-item { background:#eaf6ff; display:flex; align-items:center; }
+    .challenge-item label { align-items:center; }
+    .challenge-item .text { display:block; }
+}
+
+/* Utility */
+.hidden { display:none !important; }
+.center { text-align:center; }
+.small-note { font-size:0.85em; color:#666; }
+
+/* Make card contents wrap nicely */
+.card * { word-wrap:break-word; }
+
+/* Ensure charts responsive */
+canvas { max-width:100%; }
+
+/* Animazioni cane virtuale */
+@keyframes wag-tail {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(10deg); }
+  75% { transform: rotate(-10deg); }
+}
+@keyframes pet-jump {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-15px); }
+  60% { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+#petEmoji { display:inline-block; }
+
+
+/* Bonsai animations and styles */
+@keyframes bonsai-grow {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.25); filter: brightness(1.35); }
+  100% { transform: scale(1); filter: brightness(1.1); }
+}
+@keyframes bonsai-pop {
+  0% { opacity:0; transform:translate(-50%, 8px); }
+  10% { opacity:1; transform:translate(-50%, 0); }
+  80% { opacity:1; transform:translate(-50%, -2px); }
+  100% { opacity:0; transform:translate(-50%, -6px); }
+}
+@keyframes wind-sway {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(1.8deg); }
+  100% { transform: rotate(0deg); }
+}
+#bonsaiCard { box-shadow: 0 8px 26px rgba(0,0,0,0.06); }
+#bonsaiContainer svg { transition: transform .4s ease, filter .4s ease; transform-origin: 50% 100%; }
+.bonsai-glow { box-shadow: 0 0 0 0 rgba(52,211,153,0.0), 0 0 0 0 rgba(52,211,153,0.0); }
+.bonsai-growing #bonsaiContainer svg { animation: bonsai-grow 1.1s ease; }
+#bonsaiPopup.show { animation: bonsai-pop 2s ease forwards; }
+#bonsaiLv3.wind { animation: wind-sway 4s ease-in-out infinite; transform-origin: 50% 100%; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">Anti-Bullismo App Mobile</div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="hamburger" id="hamburgerBtn" aria-label="Apri menu" title="Apri menu">
+      <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="2" rx="1" fill="white"/><rect y="7" width="20" height="2" rx="1" fill="white"/><rect y="14" width="20" height="2" rx="1" fill="white"/></svg>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile menu overlay -->
+<div id="mobileMenuOverlay" role="menu" aria-hidden="true">
+  <a href="#" data-section="dashboard" class="mobile-menu-item">Dashboard</a>
+  <a href="#" data-section="challenge" class="mobile-menu-item">Challenge</a>
+  <a href="#" data-section="diary" class="mobile-menu-item">Diario</a>
+  <a href="#" data-section="sos" class="mobile-menu-item">SOS</a>
+  <a href="#" data-section="info" class="mobile-menu-item">Info/Legge</a>
+</div>
+
+<div class="container">
+  <section id="dashboard" class="section active">
+    <div class="card">
+      <h2>Dashboard</h2>
+      <div>Citazione del giorno: <span id="dailyQuote" style="font-style:italic;font-weight:500;"></span></div>
+    
+    
+<div class="card" id="bonsaiCard" style="text-align:center; margin-top:18px; background:#f6f9f4; border-left-color:#84cc16;">
+  <h2>Bonsai della Resilienza 🎋</h2>
+  <div id="bonsaiContainer" style="display:flex; align-items:center; justify-content:center; height:160px; position:relative;">
+    <!-- Popup feedback -->
+    <div id="bonsaiPopup" style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); font-size:0.95em; padding:6px 10px; background:rgba(132,204,22,0.12); border:1px solid rgba(132,204,22,0.35); border-radius:999px; opacity:0; pointer-events:none;">
+      🌞 +1 giorno di resilienza
+    </div>
+    <!-- Level 1: germoglio -->
+    <svg id="bonsaiLv1" viewBox="0 0 200 160" width="180" height="140" style="display:none;">
+      <defs>
+        <linearGradient id="leafGrad1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#9bd37a"/>
+          <stop offset="100%" stop-color="#5aa948"/>
+        </linearGradient>
+      </defs>
+      <!-- terreno -->
+      <ellipse cx="100" cy="150" rx="55" ry="8" fill="#d0c6b5"/>
+      <!-- vaso -->
+      <rect x="70" y="120" width="60" height="22" rx="6" fill="#b76f45"/>
+      <rect x="62" y="112" width="76" height="12" rx="6" fill="#a5613b"/>
+      <!-- tronco -->
+      <path d="M100 120 C 100 110, 100 100, 100 92" stroke="#7a4e2b" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <!-- foglie piccole -->
+      <ellipse cx="100" cy="86" rx="12" ry="8" fill="url(#leafGrad1)"/>
+    </svg>
+    <!-- Level 2: bonsai giovane -->
+    <svg id="bonsaiLv2" viewBox="0 0 200 160" width="180" height="140" style="display:none;">
+      <defs>
+        <linearGradient id="leafGrad2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8fd164"/>
+          <stop offset="100%" stop-color="#4f9a3f"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="100" cy="150" rx="58" ry="9" fill="#d0c6b5"/>
+      <rect x="66" y="116" width="68" height="26" rx="7" fill="#b76f45"/>
+      <rect x="58" y="108" width="84" height="12" rx="6" fill="#a5613b"/>
+      <path d="M100 116 C 100 100, 95 90, 92 84" stroke="#7a4e2b" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M100 116 C 100 102, 105 92, 112 86" stroke="#7a4e2b" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <ellipse cx="88" cy="80" rx="18" ry="12" fill="url(#leafGrad2)"/>
+      <ellipse cx="116" cy="78" rx="16" ry="11" fill="url(#leafGrad2)"/>
+    </svg>
+    <!-- Level 3: bonsai maturo -->
+    <svg id="bonsaiLv3" viewBox="0 0 200 160" width="180" height="140" style="display:none;">
+      <defs>
+        <linearGradient id="leafGrad3" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#86cf5b"/>
+          <stop offset="100%" stop-color="#3f8b34"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <ellipse cx="100" cy="150" rx="62" ry="10" fill="#d0c6b5"/>
+      <rect x="60" y="112" width="80" height="30" rx="8" fill="#b76f45"/>
+      <rect x="52" y="102" width="96" height="12" rx="6" fill="#a5613b"/>
+      <path d="M100 112 C 100 92, 90 84, 80 76" stroke="#7a4e2b" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M100 112 C 104 96, 110 86, 124 78" stroke="#7a4e2b" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <ellipse cx="78" cy="70" rx="22" ry="14" fill="url(#leafGrad3)"/>
+      <ellipse cx="104" cy="64" rx="20" ry="13" fill="url(#leafGrad3)"/>
+      <ellipse cx="128" cy="72" rx="18" ry="12" fill="url(#leafGrad3)"/>
+    </svg>
+  </div>
+  <div id="bonsaiMessage" style="margin-top:6px; color:#374151; font-size:0.95em;">Ogni giorno di coraggio fa crescere il tuo bonsai 🪴</div>
+  <div id="bonsaiCounter" style="margin-top:4px; color:#065f46; font-weight:700;">Hai nutrito la tua resilienza per 0 giorni di fila 🌞</div>
+  <p class="small-note" style="margin-top:8px; color:#4b5563;">
+    Cresce completando le challenge e segnalando episodi nel diario. Dopo 30 giorni continui, raggiunge la forma completa.
+  </p>
+</div>
+
+
+    </div>
+
+    <div class="card">
+      <h2>Il tuo Percorso</h2>
+      <p>Medaglie Conquistate (una ogni 30 giorni completati): <span id="medals"></span></p>
+      <div id="streakChartContainer"><canvas id="challengeStreakChart"></canvas></div>
+      <p class="center small-note" style="margin-top:10px;">Giorni di Challenge completati nel ciclo: <span id="completedDaysDisplay">0</span> / <span id="nextMedalDays">30</span></p>
+    </div>
+  </section>
+
+  <section id="challenge" class="section">
+    <div class="card">
+      <h2>Challenge giornaliere (5 casuali)</h2>
+      <button id="generateChallengesBtn" class="primary">Genera le Challenge di oggi</button>
+      <div id="challengeList" class="challenge-list" aria-live="polite"></div>
+      <h3 style="margin-top:30px;">Esercizi di Respirazione (3 casuali)</h3>
+      <div id="respirationExercisesList" class="challenge-list" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="diary" class="section">
+    <div class="card">
+      <h2>Diario</h2>
+      <div class="emotion-selector">
+        <label for="emotionSelect">Emozione principale: </label>
+        <select id="emotionSelect">
+          <option value="Tristezza" data-color="#3b82f6">😢 Tristezza</option>
+          <option value="Rabbia" data-color="#ef4444">😡 Rabbia</option>
+          <option value="Ansia" data-color="#f59e0b" selected>😟 Ansia</option>
+          <option value="Paura" data-color="#84cc16">😨 Paura</option>
+          <option value="Nessuna" data-color="#9ca3af">⚪ Nessuna in particolare</option>
+        </select>
+      </div>
+      <textarea id="diaryText" rows="4" placeholder="Annota qui i tuoi pensieri e i fatti..."></textarea>
+      <input type="file" id="diaryFile" accept="image/*,video/*,audio/*" multiple>
+      <button id="addDiaryBtn" class="primary">Aggiungi Episodio</button>
+      <button id="exportToAuthoritiesBtn" class="primary">Crea ZIP con Episodi e Apri Client Email</button>
+      <div id="diaryEntriesList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Analisi Emozionale e Pattern 📊</h2>
+      <p style="font-weight:bold;color:var(--primary);margin-bottom:12px;">
+        <strong>Obiettivo:</strong> Trasformare le emozioni negative rilevate in positive completando la <a href="#" onclick="openSection('challenge'); return false;" style="color:var(--primary);text-decoration:underline;">Challenge</a>!
+      </p>
+      <div id="noDataMessage" style="color:var(--danger);font-weight:bold;">Aggiungi almeno 3 episodi al diario per visualizzare l'analisi.</div>
+      <div id="chartContainer" style="display:none;">
+        <div style="max-width:320px;margin:0 auto 12px;"><canvas id="emotionChart"></canvas></div>
+        <h3>Pattern di Rischio</h3>
+        <div id="patternAnalysis"></div>
+      </div>
+    </div>
+  </section>
+  <section id="sos" class="section">
+    <div class="card">
+      <h2>SOS (Contatti di Emergenza)</h2>
+      <p>Numeri utili:</p>
+      <ul>
+        <li><a href="tel:113">Polizia - 113</a></li>
+        <li><a href="tel:112">Carabinieri - 112</a></li>
+        <li><a href="tel:19696">Telefono Azzurro - 19696</a></li>
+        <li><a href="tel:114">Emergenza Infanzia - 114</a></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Contatti Positivi 🫂 (Nome e Telefono Obbligatori)</h2>
+      <input type="text" id="positiveContactName" placeholder="Nome contatto fidato">
+      <input type="tel" id="positiveContactPhone" placeholder="Telefono (Obbligatorio)">
+      <textarea id="positiveContactNote" rows="2" placeholder="Perché sono importanti per me (es. 'Mi fa ridere', 'Mi capisce')"></textarea>
+      <button id="addPositiveContactBtn" class="primary">Aggiungi Persona Positiva</button>
+      <div id="positiveContactsList"></div>
+    </div>
+  </section>
+
+  <section id="info" class="section">
+    <div class="card">
+      <h2>Info / Legge</h2>
+
+      <div class="card info-block" style="border-left-color:#f59e0b;background:#fff8e1;">
+        <h3>Segnali di Rischio</h3>
+        <p style="font-style:italic;">Se riconosci questi segnali, <strong>devi chiedere aiuto</strong>. Non sei solo/a e non è colpa tua:</p>
+        <ul class="fancy-list">
+          <li><div class="icon-bullet" style="background:#f59e0b;">🧠</div> <div><strong>Emotivi:</strong> Ansia, attacchi di panico, isolamento, bassa autostima, sbalzi d'umore.</div></li>
+          <li><div class="icon-bullet" style="background:#f59e0b;">🤕</div> <div><strong>Fisici:</strong> Mal di testa o mal di pancia frequenti, difficoltà a dormire, inappetenza, lividi non giustificabili.</div></li>
+          <li><div class="icon-bullet" style="background:#f59e0b;">🏠</div> <div><strong>Sociali:</strong> Evitamento di scuola/luoghi pubblici, richiesta di essere accompagnato/a, perdita di oggetti o denaro.</div></li>
+        </ul>
+      </div>
+
+      <div class="card info-block" style="border-left-color:#84cc16;background:#f0fff0;">
+        <h3>La Forza della Segnalazione</h3>
+        <p style="font-weight:bold;color:#84cc16;">IL BULLISMO È VIOLENZA RIPETUTA, E LA VIOLENZA SI FERMA PARLANDONE. MAI TACERE.</p>
+        <ul class="fancy-list">
+          <li><div class="icon-bullet" style="background:#84cc16;">🗣️</div> <div><strong>Parla!</strong> Rivolgiti subito a un adulto fidato: genitore, insegnante, psicologo scolastico. Non devi gestire il peso da solo/a.</div></li>
+          <li><div class="icon-bullet" style="background:#84cc16;">📜</div> <div><strong>Documenta Tutto!</strong> Il Diario di questa app ti aiuta a raccogliere prove (testi, date, nomi). Sono fondamentali per le autorità.</div></li>
+          <li><div class="icon-bullet" style="background:#84cc16;">🛡️</div> <div><strong>Segnala!</strong> Non aver paura: è la legge che ti protegge. Segnalare non è 'fare la spia', è proteggere la tua salute e i tuoi diritti.</div></li>
+        </ul>
+      </div>
+
+      <div class="card info-block" style="border-left-color:#9333ea;background:#faf5ff;">
+        <h3>La Verità Psicologica sul Bullismo</h3>
+        <p style="font-weight:bold;color:#9333ea;">IL BULLISMO NON È FORZA. È UN ATTO DI ESTREMA DEBOLEZZA INTERIORE.</p>
+        <ul class="fancy-list">
+          <li><div class="icon-bullet" style="background:#9333ea;">🎭</div> <div><strong>Maschera di Insicurezza:</strong> Il bullo agisce per mascherare le proprie insicurezze e la bassa autostima.</div></li>
+          <li><div class="icon-bullet" style="background:#9333ea;">💧</div> <div><strong>Bisogno di Approvazione:</strong> Spesso, il bullo cerca l'approvazione del suo 'branco'.</div></li>
+          <li><div class="icon-bullet" style="background:#9333ea;">💔</div> <div><strong>Vittima di Sé Stesso:</strong> In molti casi, il bullo è a sua volta vittima di violenza o di un ambiente familiare disfunzionale.</div></li>
+          <li><div class="icon-bullet" style="background:#9333ea;">👑</div> <div><strong>Tu sei la Forza Vera:</strong> La vera forza è la capacità di chiedere aiuto e proteggersi, non quella di ferire.</div></li>
+        </ul>
+      </div>
+
+      <div class="card info-block" style="border-left-color:#ef4444;background:#fef2f2;">
+        <h3>Riferimenti Legali Italiani e Pene</h3>
+        <p class="law-title">Legge n. 71/2017 - Contrasto al Cyberbullismo</p>
+        <p class="legal-text">**Contenuto:** Obbliga le scuole ad adottare misure preventive. Se un minorenne subisce bullismo online, lui o il genitore può chiedere al gestore del sito la rimozione dei contenuti lesivi (diritto all'oblio). <br>**Pena:** Non stabilisce pene penali dirette, ma procedure di ammonimento del Questore per i minori sopra i 14 anni.</p>
+        <p class="law-title">Art. 582 C.P. - Lesioni Personali</p>
+        <p class="legal-text">**Contenuto:** "Chiunque cagiona ad altri una lesione personale..." <br>**Pena:** Reclusione da sei mesi a tre anni.</p>
+        <p class="law-title">Art. 581 C.P. - Percosse</p>
+        <p class="legal-text">**Contenuto:** "Chiunque percuote taluno senza che dal fatto derivi una malattia nel corpo o nella mente..." <br>**Pena:** Reclusione fino a sei mesi o multa fino a 309 euro.</p>
+        <p class="law-title">Art. 595 C.P. - Diffamazione</p>
+        <p class="legal-text">**Contenuto:** "Chiunque, comunicando con più persone, offende l'altrui reputazione..." <br>**Pena:** Reclusione fino a un anno o multa fino a 1.032 euro.</p>
+        <p class="law-title">Art. 612 C.P. - Minaccia</p>
+        <p class="legal-text">**Contenuto:** "Chiunque minaccia ad altri un ingiusto danno..." <br>**Pena:** Multa fino a 1.032 euro o pena fino a un anno se grave.</p>
+        <p class="law-title">Art. 610 C.P. - Violenza privata</p>
+        <p class="legal-text">**Contenuto:** "Chiunque, con violenza o minaccia, costringe altri a fare, tollerare od omettere qualche cosa..." <br>**Pena:** Reclusione fino a 4 anni.</p>
+        <p class="law-title">Art. 612-bis C.P. - Atti Persecutori</p>
+        <p class="legal-text">**Contenuto:** "Minaccia o molesta taluno con condotte reiterate..." <br>**Pena:** Reclusione da un anno a sei anni e sei mesi.</p>
+      </div>
+
+      <div class="card responsibility-section">
+        <h3>Responsabilità Legale (Civile e Penale)</h3>
+        <p class="art-title"><span>👪</span> Responsabilità dei Genitori (Art. 2048 C.C.)</p>
+        <p class="legal-text">I genitori sono civilmente responsabili per i danni causati dal figlio minore non emancipato che vive con loro.</p>
+        <p class="art-title"><span>🏫</span> Responsabilità della Scuola</p>
+        <p class="legal-text">La scuola ha l'obbligo di vigilanza sugli studenti; in caso di mancata vigilanza può essere chiamata a rispondere del danno.</p>
+        <p class="art-title"><span>👨‍⚖️</span> Imputabilità Penale</p>
+        <p class="legal-text">In Italia l'imputabilità penale scatta a 14 anni. Un minore sopra tale età può essere processato per reati come lesioni, stalking, diffamazione.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Bottom nav for larger screens -->
+<nav aria-label="Navigazione principale">
+  <button data-section="dashboard" class="active">Dashboard</button>
+  <button data-section="challenge">Challenge</button>
+  <button data-section="diary">Diario</button>
+  <button data-section="sos">SOS</button>
+  <button data-section="info">Info/Legge</button>
+</nav>
+
+<script>
+/* -----------------------
+   CONFIG
+   ----------------------- */
+const APP_VERSION = '2.2';
+
+/* -----------------------
+   Variabili Globali e Storage
+   ----------------------- */
+let diaryEntries = JSON.parse(localStorage.getItem('diaryEntries')) || [];
+let positiveContacts = JSON.parse(localStorage.getItem('positiveContacts')) || [];
+let completedDaysCount = parseInt(localStorage.getItem('completedDaysCount')) || 0;
+let dailyChallengeStatus = JSON.parse(localStorage.getItem('dailyChallengeStatus')) || {};
+let lastCompletedDay = localStorage.getItem('lastCompletedDay') || null;
+
+/* Keys to avoid repeating yesterday's items */
+const LAST_CHALLENGE_IDS_KEY = 'lastChallengeIds';
+const LAST_EXERCISE_IDS_KEY = 'lastExerciseIds';
+const LAST_CHALLENGE_DATE_KEY = 'lastChallengeDate';
+
+let emotionChartInstance = null;
+let streakChartInstance = null;
+
+const challengeListDiv = document.getElementById('challengeList');
+const respirationExercisesListDiv = document.getElementById('respirationExercisesList');
+
+const todayString = () => new Date().toISOString().slice(0,10);
+const nowString = () => new Date().toLocaleString('it-IT');
+
+/* -----------------------
+   Utility: shuffle & pick avoiding yesterday
+   ----------------------- */
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+/* pick N items from pool avoiding previous ids */
+function pickAvoidingPrev(pool, prevIds, n, idField='id') {
+  const result = [];
+  const poolCopy = pool.slice();
+  let filtered = poolCopy.filter(it => !prevIds.includes(it[idField] || it.id || it.idBase || it.titleBase || it.title));
+  filtered = shuffleArray(filtered);
+  for (let i=0;i<filtered.length && result.length<n;i++) result.push(filtered[i]);
+  if (result.length < n) {
+    const remaining = poolCopy.filter(it => !result.some(r=> (r[idField]||r.id||r.idBase||r.titleBase||r.title) === (it[idField]||it.id||it.idBase||it.titleBase||it.title)));
+    const shuffledRem = shuffleArray(remaining);
+    for (let i=0;i<shuffledRem.length && result.length<n;i++) result.push(shuffledRem[i]);
+  }
+  return result.slice(0,n);
+}
+
+/* -----------------------
+   Chart / Medaglie
+   ----------------------- */
+const MEDAL_CYCLE_DAYS = 30;
+function renderMedals() {
+    const medalsCount = Math.floor(completedDaysCount / MEDAL_CYCLE_DAYS);
+    const medalEmoji = '🏅';
+    document.getElementById('medals').textContent = medalsCount > 0 ? medalEmoji.repeat(medalsCount) : '—';
+
+    const nextMedalDays = MEDAL_CYCLE_DAYS - (completedDaysCount % MEDAL_CYCLE_DAYS);
+    const completedInCycle = completedDaysCount % MEDAL_CYCLE_DAYS;
+    document.getElementById('completedDaysDisplay').textContent = completedInCycle;
+    document.getElementById('nextMedalDays').textContent = MEDAL_CYCLE_DAYS;
+
+    const ctx = document.getElementById('challengeStreakChart').getContext('2d');
+    if (streakChartInstance) streakChartInstance.destroy();
+
+    streakChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels:['Completato','Mancante'],
+            datasets:[{
+                data:[completedInCycle, nextMedalDays],
+                backgroundColor:['rgb(2,132,199)','rgb(224,242,254)'],
+                hoverOffset:4
+            }]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            cutout:'70%',
+            plugins:{ legend:{display:false} }
+        }
+    });
+}
+
+/* -----------------------
+   Generazione challenge (200) e respirazione (50)
+   ----------------------- */
+
+/* Base seeds (clean, without forbidden phrases) */
+const challengeSeeds = [
+  "Autostima: Scrivi 5 cose che sai fare bene",
+  "Immagine: Fai un elogio allo specchio per 30 secondi",
+  "Gratitudine: Annotare 3 persone o eventi per cui sei grato/a oggi",
+  "Limiti: Prova a dire 'no' in modo assertivo quando necessario",
+  "Riscoperta: Scrivi 5 aggettivi positivi che ti descrivono",
+  "Musica: Crea una playlist di 5 canzoni che ti danno energia",
+  "Memoria: Ricorda un momento in cui hai superato una difficoltà e annotalo",
+  "Auto-Cura: Fai qualcosa solo per te che ti fa stare bene (es. tisana, bagno)",
+  "Felicità: Dedica 20 minuti a un hobby che ti piace",
+  "Espressione: Disegna come ti senti ora senza usare parole",
+  "Salute: Fai una camminata di 10 minuti concentrandoti sul respiro",
+  "Connessione: Manda un messaggio gentile a qualcuno che apprezzi",
+  "Sogni: Scrivi un piccolo obiettivo per la settimana",
+  "Gentilezza: Completa una piccola azione gentile per un altro",
+  "Organizzazione: Metti in ordine un piccolo spazio intorno a te",
+  "Respiro consapevole: 5 minuti di respirazione tranquilla",
+  "Riflessione: Scrivi una cosa che vorresti migliorare e un piccolo passo per farlo",
+  "Comunicazione: Pratica l'ascolto attivo per 5 minuti con qualcuno",
+  "Diario del buon umore: Scrivi 3 cose positive successe oggi",
+  "Limite digitale: Spegni le notifiche per 30 minuti e nota come ti senti"
+];
+
+/* modifiers WITHOUT the undesired phrase */
+const modifiers = [
+  "ricorda chi ti sostiene",
+  "prova a sorridere per 60 secondi",
+  "scrivi un breve messaggio di incoraggiamento a te stesso/a",
+  "fai una pausa consapevole di 5 minuti",
+  "condividi un pensiero positivo con un amico",
+  "raccogli tre piccoli successi della settimana",
+  "scrivi una lista di cose che ti danno conforto",
+  "prova una semplice tecnica di rilassamento",
+  "fai un gesto di cura verso te stesso/a",
+  "nota una cosa che oggi è andata meglio del previsto"
+];
+
+/* Build ~200 challenge items by combining seeds and modifiers, keep titleBase only and shuffle */
+let allChallenges = [];
+(function build200Challenges(){
+  const pool = [];
+  let counter = 1;
+  for (let i=0;i<challengeSeeds.length;i++){
+    for (let j=0;j<10 && pool.length < 200;j++){
+      const seed = challengeSeeds[i];
+      pool.push({
+        titleBase: seed,
+        idBase: 'C' + (counter++)
+      });
+    }
+  }
+  const extras = [
+    {titleBase:"Autostima: Scrivi tre qualità che ti rendono orgoglioso/a", idBase:'C_extra1'},
+    {titleBase:"Gratitudine: Ringrazia mentalmente una persona che ti ha aiutato", idBase:'C_extra2'},
+    {titleBase:"Benessere: Bevi un bicchiere d'acqua lentamente, concentrati sul gusto", idBase:'C_extra3'},
+    {titleBase:"Stretch: Fai 5 minuti di stretching dolce", idBase:'C_extra4'},
+    {titleBase:"Creatività: Scrivi una breve frase positiva su un post-it", idBase:'C_extra5'},
+    {titleBase:"Relazioni: Ringrazia qualcuno a voce per qualcosa di piccolo", idBase:'C_extra6'},
+    {titleBase:"Empatia: Ascolta una canzone e prova a descrivere come ti fa sentire", idBase:'C_extra7'},
+    {titleBase:"Organizzazione: Definisci 2 priorità del giorno", idBase:'C_extra8'},
+    {titleBase:"Rilassamento: Sdraiati 3 minuti e focalizzati sul respiro", idBase:'C_extra9'},
+    {titleBase:"Sicurezza: Scrivi una frase che ti ricordi che sei al sicuro", idBase:'C_extra10'}
+  ];
+  let k = 0;
+  while (pool.length < 200) {
+    const ex = extras[k % extras.length];
+    pool.push({ titleBase: ex.titleBase, idBase: ex.idBase + (k>0?('_'+k):'') });
+    k++;
+  }
+  // remove forbidden phrases if any
+  const filtered = pool.filter(c => !/soggezione|punti di forza/i.test(c.titleBase));
+  // unique by titleBase
+  const seen = new Set();
+  const unique = filtered.filter(c => {
+    if (seen.has(c.titleBase)) return false;
+    seen.add(c.titleBase);
+    return true;
+  });
+  allChallenges = shuffleArray(unique).slice(0,200);
+})();
+
+/* Breathing exercises - 50 unique */
+let breathingExercises = (function buildBreathing50(){
+  const list = [
+    {id:"B1", title:"Respirazione 4-7-8", desc:"Inspira 4s, trattieni 7s, espira 8s. 4 ripetizioni."},
+    {id:"B2", title:"Respirazione Quadrata", desc:"Inspira 4s, trattieni 4s, espira 4s, pausa 4s. 4 ripetizioni."},
+    {id:"B3", title:"Respirazione Diaframmatica", desc:"Mano sulla pancia: inspira gonfiando, espira svuotando. 8 ripetizioni."},
+    {id:"B4", title:"Respiro Lento 1:2", desc:"Inspira 3s, espira 6s. 6 ripetizioni."},
+    {id:"B5", title:"Soffio di Candele", desc:"Espira come per spegnere una candela, lento e controllato. 8 ripetizioni."},
+    {id:"B6", title:"Respiro a Narici Alternate", desc:"Alterna narici (Nadi Shodhana) per 6 cicli."},
+    {id:"B7", title:"Respiro del Mare", desc:"Immagina le onde e respira ritmo calmo per 2-3 minuti."},
+    {id:"B8", title:"Respiro Profondo e Lento", desc:"Inspira profondamente, espira molto lentamente. 6 ripetizioni."},
+    {id:"B9", title:"Respiro con Conteggio", desc:"Inspira 4, espira 6 contando. 6 ripetizioni."},
+    {id:"B10", title:"Respiro e Scansione", desc:"Respira e porta attenzione ai piedi, gambe, addome. 5 cicli."},
+    {id:"B11", title:"Respiro Rilassante del Collo", desc:"Respira e rilassa il collo su ogni espirazione. 6 ripetizioni."},
+    {id:"B12", title:"Respiro per Tensioni Spalle", desc:"Inspira, solleva spalle; espira e rilassale. 5 ripetizioni."},
+    {id:"B13", title:"Respiro del Sorriso", desc:"Inspira profondamente ed espira immaginando un sorriso. 6 ripetizioni."},
+    {id:"B14", title:"Respiro a 3-3-6", desc:"Inspira 3s, trattieni 3s, espira 6s. 5 ripetizioni."},
+    {id:"B15", title:"Respiro Corto-Lungo alternato", desc:"Alterna un respiro corto con uno lungo per 6 cicli."},
+    {id:"B16", title:"Respiro con Mani sul Cuore", desc:"Metti le mani sul petto e respira lento per 6 cicli."},
+    {id:"B17", title:"Respiro a Onda", desc:"Immagina il respiro come onda che sale e scende. 6 cicli."},
+    {id:"B18", title:"Respiro Morbido", desc:"Respira senza forzare, 2 minuti concentrati."},
+    {id:"B19", title:"Respiro di Stabilità", desc:"Inspira 3, espira 3 mantenendo postura eretta. 6 cicli."},
+    {id:"B20", title:"Respiro con Visualizzazione", desc:"Inspira immagini positive, espira tensione. 5 cicli."},
+    {id:"B21", title:"Respiro Lento 10", desc:"Respira lentamente per 10 cicli concentrandoti sul rilassamento."},
+    {id:"B22", title:"Respiro 2:4", desc:"Inspira 2s, espira 4s. 8 ripetizioni."},
+    {id:"B23", title:"Respiro e Rilascio Muscolare", desc:"Combina respiro con rilascio di gruppi muscolari. 5 cicli."},
+    {id:"B24", title:"Respiro Focale", desc:"Respira e fissa un punto esterno per aumentare presenza. 6 cicli."},
+    {id:"B25", title:"Respiro con Conteggio Silenzioso", desc:"Conta in testa 4/4 per insp/esp. 8 ripetizioni."},
+    {id:"B26", title:"Respiro Delicato", desc:"Respiri profondi e delicati per 2 minuti."},
+    {id:"B27", title:"Respiro del Rilascio", desc:"Ad ogni espirazione immagina di lasciare andare una preoccupazione."},
+    {id:"B28", title:"Respiro Consapevole Seduto", desc:"Respira e senti il contatto dei piedi col pavimento. 6 cicli."},
+    {id:"B29", title:"Respiro per Energia", desc:"Respiri lunghi e pieni per 5 cicli per ricaricarsi."},
+    {id:"B30", title:"Respiro per Calmarsi", desc:"Respiri lenti e corti per portare calma. 6 cicli."},
+    {id:"B31", title:"Respiro con Pausa", desc:"Inspira 4s, pausa 2s, espira 6s. 5 ripetizioni."},
+    {id:"B32", title:"Respiro Ritmico", desc:"Mantieni ritmo costante per 6 cicli."},
+    {id:"B33", title:"Respiro e Postura", desc:"Allunga la schiena e respira profondamente 6 volte."},
+    {id:"B34", title:"Respiro per Concentrazione", desc:"Respira e focalizza su un compito per 2 minuti."},
+    {id:"B35", title:"Respiro Emozioni", desc:"Associa respiro a un colore calmo. 5 cicli."},
+    {id:"B36", title:"Respiro 5-5", desc:"Inspira 5s, espira 5s. 5 ripetizioni."},
+    {id:"B37", title:"Respiro di Recupero", desc:"4 respiri profondi per ritrovare calma."},
+    {id:"B38", title:"Respiro Lento Profondo", desc:"Inspira profondamente e espira molto lento. 6 ripetizioni."},
+    {id:"B39", title:"Respiro a Filtro", desc:"Immagina che l'aria purifichi la mente. 5 cicli."},
+    {id:"B40", title:"Respiro e Contatto", desc:"Metti una mano sul cuore e una sulla pancia, respira consapevole."},
+    {id:"B41", title:"Respiro Ritmico 7", desc:"Respira con ritmo costante per 7 cicli."},
+    {id:"B42", title:"Respiro e Allungamento", desc:"Allunga braccia mentre inspiri, abbassa mentre espiri. 5 ripetizioni."},
+    {id:"B43", title:"Respiro e Visuale Interna", desc:"Visualizza un luogo sicuro ad ogni espirazione. 6 cicli."},
+    {id:"B44", title:"Respiro Breve-Forte", desc:"Respiri brevi e decisi per 8 cicli per focalizzarsi."},
+    {id:"B45", title:"Respiro di Grounding", desc:"Respira e senti i piedi a terra; ripeti 6 volte."},
+    {id:"B46", title:"Respiro con Conteggio Lento", desc:"Inspira 6, espira 6. 4 ripetizioni."},
+    {id:"B47", title:"Respiro Mente-Calma", desc:"Respira e lascia andare pensieri inutili. 5 cicli."},
+    {id:"B48", title:"Respiro per Tensione Addominale", desc:"Respiri profondi focalizzati sull'addome. 6 cicli."},
+    {id:"B49", title:"Respiro e Suono", desc:"Esegui una leggera esalazione sonora per rilassare gola/spalle. 6 cicli."},
+    {id:"B50", title:"Respiro di Presenza", desc:"Respira e porta attenzione al qui e ora per 2 minuti."}
+  ];
+  return list;
+})();
+
+/* -----------------------
+   Render functions (with new challenge markup)
+   ----------------------- */
+function disableAllChallengeInputs(force = false) {
+    const isTodayCompleted = lastCompletedDay === todayString();
+    document.querySelectorAll('#challengeList input, #respirationExercisesList input').forEach(input => {
+        input.disabled = force || isTodayCompleted;
+    });
+}
+
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  return String(str).replace(/[&<>"']/g, function (m) {
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
+  });
+}
+
+function renderChallenges() {
+    challengeListDiv.innerHTML = '';
+    respirationExercisesListDiv.innerHTML = '';
+
+    if (dailyChallengeStatus.date !== todayString() || !dailyChallengeStatus.challenges || dailyChallengeStatus.challenges.length === 0) {
+        challengeListDiv.innerHTML = '<div style="color:var(--primary);font-weight:700;">Premi il pulsante per generare le Challenge di oggi!</div>';
+        respirationExercisesListDiv.innerHTML = '<div style="color:var(--primary);font-weight:700;">Esercizi non generati.</div>';
+        disableAllChallengeInputs();
+        return;
+    }
+
+    // challenges (use .challenge-item markup)
+    dailyChallengeStatus.challenges.forEach(c => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'challenge-item';
+        // split title at first colon for formatting: bold before colon, rest normal
+        let before = c.titleBase, after = '';
+        const idx = c.titleBase.indexOf(':');
+        if (idx !== -1) {
+          before = c.titleBase.slice(0, idx+1); // include colon
+          after = c.titleBase.slice(idx+1).trim();
+        }
+        const safeBefore = escapeHtml(before);
+        const safeAfter = escapeHtml(after);
+
+        wrapper.innerHTML = `
+          <label>
+            <input type="checkbox" id="challenge-${c.id}" ${c.isCompleted ? 'checked' : ''} data-id="${c.id}" data-type="challenge" aria-label="Completata challenge">
+            <span class="text"><b>${safeBefore}</b><span class="rest">${safeAfter}</span></span>
+          </label>
+        `;
+        const checkbox = wrapper.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', (e) => {
+            const id = e.target.dataset.id;
+            const checked = e.target.checked;
+            const item = dailyChallengeStatus.challenges.find(ch => ch.id === id);
+            if (item) {
+                item.isCompleted = checked;
+                saveToLocalStorage();
+                const dayCompleted = updateCompletedDaysCount();
+                renderMedals();
+                if (dayCompleted) {
+                    disableAllChallengeInputs(true);
+                    document.dispatchEvent(new Event('challengeCompletedDay'));
+                    alert(`COMPLETAMENTO GIORNALIERO! Hai completato tutte le Challenge e gli Esercizi di oggi! Giorno ${completedDaysCount} completato.`);
+                }
+            }
+        });
+        challengeListDiv.appendChild(wrapper);
+    });
+
+    // exercises
+    dailyChallengeStatus.exercises.forEach(e => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'exercise-item';
+        const safeTitle = escapeHtml(e.title);
+        const safeDesc = escapeHtml(e.desc);
+        wrapper.innerHTML = `
+          <label>
+            <input type="checkbox" id="exercise-${e.id}" ${e.isCompleted ? 'checked' : ''} data-id="${e.id}" data-type="exercise" aria-label="Completato esercizio respirazione">
+            <div><b>${safeTitle}</b><div class="rest">${safeDesc}</div></div>
+          </label>
+        `;
+        const checkbox = wrapper.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', (ev) => {
+            const id = ev.target.dataset.id;
+            const checked = ev.target.checked;
+            const item = dailyChallengeStatus.exercises.find(ex => ex.id === id);
+            if (item) {
+                item.isCompleted = checked;
+                saveToLocalStorage();
+                const dayCompleted = updateCompletedDaysCount();
+                renderMedals();
+                if (dayCompleted) {
+                    disableAllChallengeInputs(true);
+                    document.dispatchEvent(new Event('challengeCompletedDay'));
+                    alert(`COMPLETAMENTO GIORNALIERO! Hai completato tutte le Challenge e gli Esercizi di oggi! Giorno ${completedDaysCount} completato.`);
+                }
+            }
+        });
+        respirationExercisesListDiv.appendChild(wrapper);
+    });
+
+    disableAllChallengeInputs();
+}
+
+/* -----------------------
+   Generate challenges & exercises avoiding yesterday
+   ----------------------- */
+function generateDailySets() {
+  // Called explicitly by user: we force regeneration for today only
+  // but keep lastChallengeIds/lastExerciseIds in storage so we avoid yesterday's items
+  localStorage.removeItem('dailyChallengeStatus');
+
+  const lastChallengeIds = JSON.parse(localStorage.getItem(LAST_CHALLENGE_IDS_KEY) || '[]');
+  const lastExerciseIds = JSON.parse(localStorage.getItem(LAST_EXERCISE_IDS_KEY) || '[]');
+
+  // Build pool with deterministic ids for allChallenges
+  const poolChallenges = allChallenges.map((c, idx) => ({...c, id: c.idBase || ('CH' + idx)}));
+  // pick 5 avoiding lastChallengeIds
+  const picks = pickAvoidingPrev(poolChallenges, lastChallengeIds, 5, 'id');
+  const challengesToDisplay = picks.map(c => ({
+    titleBase: c.titleBase,
+    id: c.id,
+    isCompleted:false
+  }));
+
+  // pick 3 breathing exercises avoiding yesterday
+  const exercisesPicks = pickAvoidingPrev(breathingExercises.map(b => ({...b, id: b.id})), lastExerciseIds, 3, 'id');
+  const exercisesToDisplay = exercisesPicks.map(e => ({ ...e, id: e.id + '_' + Math.random().toString(36).slice(2,6), isCompleted:false }));
+
+  // save last picks for tomorrow (store original ids)
+  const storeChallengeIds = challengesToDisplay.map(c => {
+    const match = poolChallenges.find(pc => pc.titleBase === c.titleBase || pc.id === c.id);
+    return match ? match.id : c.id;
+  });
+  const storeExerciseIds = exercisesToDisplay.map(e => (e.id.split('_')[0] || e.id));
+  localStorage.setItem(LAST_CHALLENGE_IDS_KEY, JSON.stringify(storeChallengeIds));
+  localStorage.setItem(LAST_EXERCISE_IDS_KEY, JSON.stringify(storeExerciseIds));
+  localStorage.setItem(LAST_CHALLENGE_DATE_KEY, todayString());
+
+  dailyChallengeStatus = {
+    date: todayString(),
+    challenges: challengesToDisplay,
+    exercises: exercisesToDisplay
+  };
+  saveToLocalStorage();
+  renderChallenges();
+}
+
+/* If user presses button to explicitly generate */
+document.getElementById('generateChallengesBtn').addEventListener('click', () => {
+  generateDailySets();
+});
+
+/* Auto-generate on load if date changed (so daily).
+   If dailyChallengeStatus already present for today, use it.
+   Otherwise generate fresh avoiding yesterday's items.
+*/
+function ensureDailySetOnLoad() {
+  const stored = JSON.parse(localStorage.getItem('dailyChallengeStatus') || '{}');
+  if (stored && stored.date === todayString() && stored.challenges && stored.exercises) {
+    dailyChallengeStatus = stored;
+    dailyChallengeStatus.challenges = dailyChallengeStatus.challenges.map(c => ({...c, isCompleted: !!c.isCompleted}));
+    dailyChallengeStatus.exercises = dailyChallengeStatus.exercises.map(e => ({...e, isCompleted: !!e.isCompleted}));
+  } else {
+    // create fresh today set avoiding yesterday
+    const lastChallengeIds = JSON.parse(localStorage.getItem(LAST_CHALLENGE_IDS_KEY) || '[]');
+    const lastExerciseIds = JSON.parse(localStorage.getItem(LAST_EXERCISE_IDS_KEY) || '[]');
+
+    const poolChallenges = allChallenges.map((c, idx) => ({...c, id: c.idBase || ('CH' + idx)}));
+    const picks = pickAvoidingPrev(poolChallenges, lastChallengeIds, 5, 'id');
+    const challengesToDisplay = picks.map(c => ({
+      titleBase: c.titleBase,
+      id: c.id,
+      isCompleted:false
+    }));
+
+    const exercisesPicks = pickAvoidingPrev(breathingExercises.map(b => ({...b, id: b.id})), lastExerciseIds, 3, 'id');
+    const exercisesToDisplay = exercisesPicks.map(e => ({ ...e, id: e.id + '_' + Math.random().toString(36).slice(2,6), isCompleted:false }));
+
+    const storeChallengeIds = challengesToDisplay.map(c => {
+      const match = poolChallenges.find(pc => pc.titleBase === c.titleBase);
+      return match ? match.id : c.id;
+    });
+    const storeExerciseIds = exercisesToDisplay.map(e => (e.id.split('_')[0] || e.id));
+    localStorage.setItem(LAST_CHALLENGE_IDS_KEY, JSON.stringify(storeChallengeIds));
+    localStorage.setItem(LAST_EXERCISE_IDS_KEY, JSON.stringify(storeExerciseIds));
+    localStorage.setItem(LAST_CHALLENGE_DATE_KEY, todayString());
+
+    dailyChallengeStatus = {
+      date: todayString(),
+      challenges: challengesToDisplay,
+      exercises: exercisesToDisplay
+    };
+    saveToLocalStorage();
+  }
+}
+
+/* -----------------------
+   Diario / Contacts / ZIP export (multi-fallback for mobile/WebView/APK)
+   ----------------------- */
+function saveToLocalStorage() {
+    localStorage.setItem('diaryEntries', JSON.stringify(diaryEntries));
+    localStorage.setItem('positiveContacts', JSON.stringify(positiveContacts));
+    localStorage.setItem('completedDaysCount', completedDaysCount);
+    localStorage.setItem('dailyChallengeStatus', JSON.stringify(dailyChallengeStatus));
+    localStorage.setItem('lastCompletedDay', lastCompletedDay);
+}
+
+const diaryEntriesListDiv = document.getElementById('diaryEntriesList');
+
+function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+function base64ToBlob(base64, mimeType) {
+    const byteCharacters = atob(base64.split(',')[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+}
+
+document.getElementById('addDiaryBtn').addEventListener('click', async () => {
+    const text = document.getElementById('diaryText').value.trim();
+    const fileInput = document.getElementById('diaryFile');
+    const emotion = document.getElementById('emotionSelect').value;
+
+    if (text.length === 0 && fileInput.files.length === 0) {
+        alert("Inserisci del testo o carica un file per creare un episodio del diario.");
+        return;
+    }
+
+    const filesData = [];
+    for (const file of fileInput.files) {
+        try {
+            const buffer = await readFileAsArrayBuffer(file);
+            const base64 = `data:${file.type};base64,${btoa(String.fromCharCode(...new Uint8Array(buffer)))}`;
+            filesData.push({ name: file.name, type: file.type, data: base64 });
+        } catch (error) {
+            console.error("Errore lettura file:", error);
+            
+            return;
+        }
+    }
+
+    diaryEntries.unshift({
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        date: nowString(),
+        text: text,
+        emotion: emotion,
+        files: filesData
+    });
+
+    document.getElementById('diaryText').value = '';
+    document.getElementById('diaryFile').value = '';
+    saveToLocalStorage();
+    renderDiaryEntries();
+    updateDashboardCharts();
+});
+
+function renderDiaryEntries() {
+    diaryEntriesListDiv.innerHTML = '';
+    if (diaryEntries.length === 0) {
+        diaryEntriesListDiv.innerHTML = '<p style="color:#999;text-align:center;">Nessun episodio registrato. Inizia ora!</p>';
+        return;
+    }
+
+    diaryEntries.forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'list card';
+
+        let fileHtml = entry.files.map(file => {
+            let icon = '📎';
+            if (file.type.startsWith('image/')) icon = '🖼️';
+            else if (file.type.startsWith('video/')) icon = '📹';
+            else if (file.type.startsWith('audio/')) icon = '🔊';
+            return `<p style="margin:5px 0;font-size:0.85em;">${icon} ${escapeHtml(file.name)}</p>`;
+        }).join('');
+
+        div.innerHTML = `
+            <div style="border-bottom:1px solid #ddd;padding-bottom:10px;margin-bottom:10px;">
+                <b style="color:${document.querySelector(`#emotionSelect option[value="${entry.emotion}"]`).dataset.color || '#053047'};font-size:1.05em;">
+                    ${escapeHtml(entry.emotion)}
+                </b>
+                <span style="font-size:0.8em;color:#999;margin-left:10px;">${escapeHtml(entry.date)}</span>
+                <p style="margin:10px 0 0;">${escapeHtml(entry.text).replace(/\n/g,'<br>')}</p>
+                ${fileHtml}
+            </div>
+            <button class="primary" style="width:auto;margin:0;padding:8px 12px;font-size:0.9em;background:var(--danger);" onclick="deleteDiaryEntry(${entry.id})">Elimina</button>
+        `;
+        diaryEntriesListDiv.appendChild(div);
+    });
+}
+function deleteDiaryEntry(id) {
+    if (!confirm('Sei sicuro di voler eliminare questo episodio?')) return;
+    diaryEntries = diaryEntries.filter(e => e.id !== id);
+    saveToLocalStorage();
+    renderDiaryEntries();
+    updateDashboardCharts();
+}
+
+/* -----------------------
+   Contatti Positivi
+   ----------------------- */
+const positiveContactsListDiv = document.getElementById('positiveContactsList');
+document.getElementById('addPositiveContactBtn').addEventListener('click', () => {
+    const name = document.getElementById('positiveContactName').value.trim();
+    const phone = document.getElementById('positiveContactPhone').value.trim();
+    const note = document.getElementById('positiveContactNote').value.trim();
+
+    if (!name || !phone) {
+        alert("Nome e numero di telefono sono obbligatori.");
+        return;
+    }
+    positiveContacts.push({ name, phone, note });
+    document.getElementById('positiveContactName').value = '';
+    document.getElementById('positiveContactPhone').value = '';
+    document.getElementById('positiveContactNote').value = '';
+    saveToLocalStorage();
+    renderPositiveContacts();
+});
+function renderPositiveContacts() {
+    positiveContactsListDiv.innerHTML = '';
+    if (positiveContacts.length === 0) {
+        positiveContactsListDiv.innerHTML = '<p style="color:#999;text-align:center;">Aggiungi persone che ti fanno stare bene.</p>';
+        return;
+    }
+    positiveContacts.forEach((contact, idx) => {
+        const div = document.createElement('div');
+        div.className = 'list card';
+        div.style.borderLeftColor = '#84cc16';
+        div.innerHTML = `
+            <div style="width:100%;">
+                <b style="color:var(--accent);">${escapeHtml(contact.name)}</b>
+                <p style="margin:5px 0 0;font-size:0.9em;color:#555;">📞 ${escapeHtml(contact.phone)}</p>
+                ${contact.note ? `<p style="margin:5px 0 0;font-style:italic;font-size:0.85em;">Nota: ${escapeHtml(contact.note)}</p>` : ''}
+            </div>
+            <a href="tel:${encodeURIComponent(contact.phone)}" class="primary" style="width:auto;margin:0;padding:8px 12px;font-size:0.9em;background:#84cc16;text-decoration:none;text-align:center;margin-top:14px;margin-bottom:6px;display:inline-block;">Chiama</a>
+            <button class="primary" style="width:auto;margin:0 0 0 5px;padding:8px 12px;font-size:0.9em;background:var(--danger);" onclick="deletePositiveContact(${idx})">Elimina</button>
+        `;
+        positiveContactsListDiv.appendChild(div);
+    });
+}
+function deletePositiveContact(index) {
+    if (!confirm('Sei sicuro di voler eliminare questo contatto positivo?')) return;
+    positiveContacts.splice(index,1);
+    saveToLocalStorage();
+    renderPositiveContacts();
+}
+
+/* -----------------------
+   Esportazione ZIP (multi-fallback per mobile/WebView/APK)
+   ----------------------- */
+
+
+
+document.getElementById('exportToAuthoritiesBtn').addEventListener('click', async () => {
+    if (diaryEntries.length === 0) {
+        alert("Non ci sono episodi nel diario da esportare.");
+        return;
+    }
+
+    const zip = new JSZip();
+    let totalSize = 0;
+    let reportText = `Report Episodi Diario Anti-Bullismo
+Data Esportazione: ${nowString()}
+
+`;
+
+    diaryEntries.forEach((entry, index) => {
+        const folderName = `Episodio_${index + 1}_${entry.timestamp.slice(0, 10).replace(/-/g, '')}`;
+        const entryFolder = zip.folder(folderName);
+        reportText += `--- Episodio #${index + 1} (${entry.date}) ---
+Emozione Principale: ${entry.emotion}
+Testo:
+${entry.text}
+
+`;
+        entryFolder.file(`Episodio_${index + 1}.txt`, `Data/Ora: ${entry.date}
+Emozione: ${entry.emotion}
+Testo:
+${entry.text}`);
+        if (entry.files && entry.files.length > 0) {
+            entry.files.forEach(f => {
+                try {
+                    const blob = base64ToBlob(f.data, f.type);
+                    totalSize += blob.size;
+                    entryFolder.file(f.name, blob);
+                } catch (e) {
+                    console.error("Errore Blob:", e);
+                }
+            });
+        }
+    });
+
+    if (totalSize > 20 * 1024 * 1024) {
+        alert("Gli allegati totali superano 20 MB. Riduci le dimensioni o rimuovi alcuni file prima di creare lo ZIP.");
+        return;
+    }
+
+    zip.file("Report_Riassuntivo.txt", reportText);
+
+    try {
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipName = `Report_Diario_AntiBullismo_${todayString()}.zip`;
+        saveAs(zipBlob, zipName);
+
+        // Apri client email subito dopo
+        window.location.href = "mailto:?subject=Riepilogo episodi bullismo&body=Spett.le Autorità,%0D%0Aallego riepilogo degli episodi di bullismo da me subiti, con relative date e allegati.%0D%0AResto a disposizione per eventuali chiarimenti.%0D%0ACordiali saluti,%0D%0A[Nome e Cognome]%0D%0A[Telefono]";
+
+    } catch (err) {
+        console.error("Errore creazione ZIP:", err);
+        
+    }
+});
+/* -----------------------
+   Dashboard
+
+
+ / Chart Emozionale
+   ----------------------- */
+function updateDashboardCharts() {
+    const chartContainer = document.getElementById('chartContainer');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const patternAnalysisDiv = document.getElementById('patternAnalysis');
+
+    if (diaryEntries.length < 3) {
+        chartContainer.style.display = 'none';
+        noDataMessage.style.display = 'block';
+        return;
+    }
+    chartContainer.style.display = 'block';
+    noDataMessage.style.display = 'none';
+
+    const emotionCounts = diaryEntries.reduce((acc, entry) => {
+        const emotion = entry.emotion || 'Nessuna';
+        acc[emotion] = (acc[emotion] || 0) + 1;
+        return acc;
+    }, {});
+    const emotionLabels = Object.keys(emotionCounts);
+    const emotionData = Object.values(emotionCounts);
+
+    const colorMap = { 'Tristezza':'#3b82f6','Rabbia':'#ef4444','Ansia':'#f59e0b','Paura':'#84cc16','Nessuna':'#9ca3af' };
+    const emotionColors = emotionLabels.map(l => colorMap[l] || '#9ca3af');
+
+    const ctxEmotion = document.getElementById('emotionChart').getContext('2d');
+    if (emotionChartInstance) emotionChartInstance.destroy();
+    emotionChartInstance = new Chart(ctxEmotion, {
+        type:'pie',
+        data:{ labels: emotionLabels, datasets:[{ data: emotionData, backgroundColor: emotionColors, hoverOffset:8 }]},
+        options:{ responsive:true, maintainAspectRatio:true, plugins:{ title:{ display:true, text:'Frequenza Emozioni nel Diario' }, legend:{ position:'bottom' } } }
+    });
+
+    const dayCounts = diaryEntries.reduce((acc, entry) => {
+        const dayOfWeek = (new Date(entry.timestamp)).toLocaleDateString('it-IT', { weekday: 'long' });
+        if (dayOfWeek) acc[dayOfWeek] = (acc[dayOfWeek] || 0) + 1;
+        return acc;
+    }, {});
+    let maxEntries = -1;
+    let highRiskDay = 'Nessun pattern (Dati mancanti o invalidi)';
+    for (const day in dayCounts) {
+        if (dayCounts[day] > maxEntries) { maxEntries = dayCounts[day]; highRiskDay = day.charAt(0).toUpperCase() + day.slice(1); }
+    }
+    if (maxEntries > 0) {
+        patternAnalysisDiv.innerHTML = `
+            <div class="risk-pattern" style="background:#fff2f2;padding:10px;border-radius:8px;border-left:4px solid var(--danger);">
+                <p style="margin:0;font-weight:bold;color:var(--danger);">Giorno a Maggior Rischio Rilevato:</p>
+                <p style="margin:5px 0 0;font-weight:bold;font-size:1.05em;">${escapeHtml(highRiskDay)}</p>
+                <p style="margin:0;font-size:0.9em;color:#555;">(${maxEntries} episodi registrati in questa giornata.)</p>
+            </div>
+            <p style="font-size:0.85em;color:#555;">(Indica il giorno della settimana con più episodi registrati. Presta attenzione.)</p>
+        `;
+    } else {
+        patternAnalysisDiv.innerHTML = `<p style="font-size:0.85em;color:#555;">${escapeHtml(highRiskDay)}</p>`;
+    }
+}
+
+/* -----------------------
+   Navigazione (desktop bottom nav + mobile overlay)
+   ----------------------- */
+function openSection(sectionId) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(sectionId);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`nav button[data-section="${sectionId}"]`)?.classList.add('active');
+  if (sectionId === 'dashboard') renderMedals();
+  if (sectionId === 'challenge') renderChallenges();
+  if (sectionId === 'diary') { renderDiaryEntries(); updateDashboardCharts(); }
+  if (sectionId === 'sos') renderPositiveContacts();
+}
+window.openSection = openSection;
+
+const tabs = document.querySelectorAll('nav button');
+tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        openSection(tab.dataset.section);
+    });
+});
+
+// Mobile menu toggling with animation and auto-close on selection
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const mobileMenu = document.getElementById('mobileMenuOverlay');
+hamburgerBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = mobileMenu.classList.contains('open');
+    if (open) {
+      mobileMenu.classList.remove('open');
+      mobileMenu.setAttribute('aria-hidden','true');
+    } else {
+      mobileMenu.classList.add('open');
+      mobileMenu.setAttribute('aria-hidden','false');
+    }
+});
+document.querySelectorAll('#mobileMenuOverlay a').forEach(a => {
+    a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = a.dataset.section;
+        mobileMenu.classList.remove('open');
+        mobileMenu.setAttribute('aria-hidden','true');
+        openSection(section);
+    });
+});
+// Close mobile menu when tapping outside
+document.addEventListener('click', (e) => {
+    if (!mobileMenu.contains(e.target) && !hamburgerBtn.contains(e.target)) {
+        mobileMenu.classList.remove('open');
+        mobileMenu.setAttribute('aria-hidden','true');
+    }
+}, true);
+
+/* -----------------------
+   Citazioni giornaliere (365 uniche, senza numeri)
+   ----------------------- */
+let motivationalQuotes = [
+  "Oggi è il giorno perfetto per credere in te stesso/a.",
+  "Il tuo valore non dipende da quello che gli altri pensano.",
+  "Non permettere che le azioni di pochi definiscano la tua giornata.",
+  "La vera forza si trova nel chiedere aiuto, non nell'affrontare da solo/a.",
+  "Il tuo benessere mentale e fisico è la tua priorità."
+];
+(function ensure365QuotesNoNumbers(){
+    const templates = [
+        'Ricorda: il dolore che senti oggi può diventare forza domani.',
+        'Un passo alla volta: non devi fare tutto subito.',
+        'Chiedere aiuto è un segno di coraggio.',
+        'Sei importante: la tua storia conta.',
+        'Respira e concediti un piccolo momento per te stesso/a.',
+        'Anche i piccoli progressi sono vittorie.',
+        'Non sei solo/a: ci sono persone che vogliono ascoltarti.',
+        'Il futuro può sorprendere in meglio: datti tempo.',
+        'Se senti che è troppo, parla con qualcuno di fiducia.',
+        'Oggi puoi fare una cosa gentile per te stesso/a.'
+    ];
+    const suffixes = [
+      "Prenditi cura di te.",
+      "Un piccolo atto può cambiare la giornata.",
+      "Sei più forte di quanto pensi.",
+      "Sii gentile con te stesso/a.",
+      "Respira e continua."
+    ];
+    let idx = 0;
+    while (motivationalQuotes.length < 365) {
+        const tmpl = templates[idx % templates.length];
+        const suf = suffixes[idx % suffixes.length];
+        const candidate = `${tmpl} ${suf}`;
+        if (!motivationalQuotes.includes(candidate)) motivationalQuotes.push(candidate);
+        idx++;
+        if (idx > 2000 && motivationalQuotes.length < 365) {
+            motivationalQuotes.push("Prenditi cura di te oggi.");
+        }
+    }
+})();
+
+function getDayIndex() {
+    const startOfYear = new Date(new Date().getFullYear(),0,1);
+    const today = new Date();
+    const diffTime = Math.abs(today - startOfYear);
+    const diffDays = Math.floor(diffTime / (1000*60*60*24));
+    return diffDays % motivationalQuotes.length;
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
+    document.getElementById('dailyQuote').textContent = motivationalQuotes[randomIndex];
+});
+
+/* -----------------------
+   Completamento giornaliero (verifica e conteggio)
+   ----------------------- */
+function updateCompletedDaysCount() {
+    const statusObject = dailyChallengeStatus;
+    const challengesInitialized = statusObject.challenges && statusObject.challenges.length > 0;
+    const exercisesInitialized = statusObject.exercises && statusObject.exercises.length > 0;
+
+    if (!challengesInitialized || !exercisesInitialized || statusObject.date !== todayString()) return false;
+
+    const allChallengesCompleted = statusObject.challenges.every(c => c.isCompleted);
+    const allExercisesCompleted = statusObject.exercises.every(e => e.isCompleted);
+
+    const allRequiredCompleted = allChallengesCompleted && allExercisesCompleted;
+
+    if (allRequiredCompleted && lastCompletedDay !== todayString()) {
+        completedDaysCount += 1;
+        lastCompletedDay = todayString();
+        saveToLocalStorage();
+        return true;
+    }
+    return false;
+}
+
+/* -----------------------
+   First-run intelligent reset for challenges only
+   ----------------------- */
+function ensureOneTimeResetIfNeeded() {
+  try {
+    const storedVersion = localStorage.getItem('appVersion');
+    if (storedVersion !== APP_VERSION) {
+      // Reset only challenge-related state so new generator works cleanly:
+      localStorage.removeItem('dailyChallengeStatus');
+      localStorage.removeItem(LAST_CHALLENGE_IDS_KEY);
+      localStorage.removeItem(LAST_EXERCISE_IDS_KEY);
+      localStorage.removeItem(LAST_CHALLENGE_DATE_KEY);
+      // set version marker so we don't repeat this
+      localStorage.setItem('appVersion', APP_VERSION);
+    }
+  } catch (e) {
+    console.error("Errore in ensureOneTimeResetIfNeeded:", e);
+  }
+}
+
+/* -----------------------
+   Inizializzazione al load
+   ----------------------- */
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+      diaryEntries = JSON.parse(localStorage.getItem('diaryEntries')) || diaryEntries;
+      positiveContacts = JSON.parse(localStorage.getItem('positiveContacts')) || positiveContacts;
+      completedDaysCount = parseInt(localStorage.getItem('completedDaysCount')) || completedDaysCount;
+      lastCompletedDay = localStorage.getItem('lastCompletedDay') || lastCompletedDay;
+    } catch (e) {
+      console.error("Errore caricamento storage:", e);
+    }
+
+    // one-time reset to clear old daily challenge entries (keeps diary and completedDaysCount)
+    ensureOneTimeResetIfNeeded();
+
+    // ensure daily set exists (generate new if necessary)
+    ensureDailySetOnLoad();
+
+    renderMedals();
+    renderChallenges();
+    renderDiaryEntries();
+    renderPositiveContacts();
+});
+
+/* Rendi disponibili alcune funzioni globali richieste dagli onclick inline */
+window.deleteDiaryEntry = deleteDiaryEntry;
+window.deletePositiveContact = deletePositiveContact;
+window.openSection = openSection;
+</script>
+
+<script>
+// -----------------------
+// Amico Virtuale 🐶 Animato (fix: integrato in file principale)
+// -----------------------
+(function(){
+  function initDog() {
+    const petEmoji = document.getElementById('petEmoji');
+    const feedBtn = document.getElementById('feedPetBtn');
+    const hugBtn = document.getElementById('hugPetBtn');
+    if (!petEmoji || !feedBtn || !hugBtn) return;
+
+    // Ripristina stato (se presente)
+    const savedMood = localStorage.getItem('petMood') || '🐶';
+    petEmoji.textContent = savedMood;
+
+    function setMood(mood, animation, durationMs=3000) {
+      petEmoji.textContent = mood;
+      petEmoji.style.animation = animation;
+      localStorage.setItem('petMood', mood);
+      // rimuove animazione e ritorna al cane neutro dopo durationMs
+      setTimeout(() => {
+        petEmoji.style.animation = '';
+        petEmoji.textContent = '🐶';
+        localStorage.setItem('petMood', '🐶');
+      }, durationMs);
+    }
+
+    feedBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      setMood('😋🐶', 'pet-jump 0.6s ease', 2500);
+    });
+    hugBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      setMood('😍🐶', 'wag-tail 0.9s ease', 2500);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDog);
+  } else {
+    initDog();
+  }
+})();
+</script>
+
+
+<script>
+/* Bonsai della Resilienza – gestione crescita per giorni consecutivi */
+(function(){
+  const KEY_DAYS = 'resilienceDays';
+  const KEY_LAST = 'resilienceLastDate';
+  const today = new Date().toISOString().slice(0,10);
+
+  function getStreak() {
+    const days = parseInt(localStorage.getItem(KEY_DAYS) || '0');
+    const last = localStorage.getItem(KEY_LAST);
+    return { days, last };
+  }
+  function setStreak(days, last) {
+    localStorage.setItem(KEY_DAYS, String(days));
+    if (last) localStorage.setItem(KEY_LAST, last);
+  }
+  function isConsecutive(prev, current) {
+    if (!prev) return false;
+    const p = new Date(prev); const c = new Date(current);
+    const diff = (c - p)/(1000*60*60*24);
+    return diff >= 1 && diff <= 2; // entro 48h = consideriamo consecutivo
+  }
+
+  function updateUI() {
+    const el1 = document.getElementById('bonsaiLv1');
+    const el2 = document.getElementById('bonsaiLv2');
+    const el3 = document.getElementById('bonsaiLv3');
+    const msg = document.getElementById('bonsaiMessage');
+    const counter = document.getElementById('bonsaiCounter');
+    if (!el1 || !el2 || !el3 || !msg || !counter) return;
+
+    const {days} = getStreak();
+    let level = 1;
+    if (days >= 30) level = 3; else if (days >= 15) level = 2;
+
+    el1.style.display = (level === 1) ? 'block' : 'none';
+    el2.style.display = (level === 2) ? 'block' : 'none';
+    el3.style.display = (level === 3) ? 'block' : 'none';
+    if (level === 3) el3.classList.add('wind'); else el3.classList.remove('wind');
+
+    counter.textContent = `Hai nutrito la tua resilienza per ${days} ${days===1?'giorno':'giorni'} di fila 🌞`;
+    if (level === 1) msg.textContent = "Ogni passo fa crescere le tue radici.";
+    if (level === 2) msg.textContent = "La costanza è la linfa della forza.";
+    if (level === 3) msg.textContent = "Hai coltivato 30 giorni di resilienza — la tua forza è un’arte.";
+  }
+
+  function showPopup() {
+    const card = document.getElementById('bonsaiCard');
+    const popup = document.getElementById('bonsaiPopup');
+    if (!card || !popup) return;
+    card.classList.add('bonsai-growing');
+    popup.classList.remove('show'); // reset
+    void popup.offsetWidth; // reflow
+    popup.classList.add('show');
+    setTimeout(() => { card.classList.remove('bonsai-growing'); }, 1200);
+  }
+
+  function registerActiveDay(reason='generic'){
+    const {days, last} = getStreak();
+    if (last === today) {
+      // già contato oggi, solo feedback
+      showPopup(); updateUI(); return;
+    }
+    let newDays = 0;
+    if (!last) newDays = 1;
+    else if (isConsecutive(last, today)) newDays = days + 1;
+    else newDays = days + 1; // non puniamo: riparte comunque incrementando
+
+    setStreak(newDays, today);
+    showPopup();
+    updateUI();
+  }
+
+  // Esporta la funzione per poterla chiamare da altri punti
+  window.registerResilienceActiveDay = registerActiveDay;
+
+  // Inizializza UI al load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateUI);
+  } else {
+    updateUI();
+  }
+
+  // Hook automatici: diario e challenge completata
+  document.addEventListener('newDiaryEntry', () => registerActiveDay('diary'));
+  document.addEventListener('challengeCompletedDay', () => registerActiveDay('challenge'));
+})();
+</script>
+
+
+<script>
+document.getElementById('addDiaryBtn').addEventListener('click', async () => {
+    const text = document.getElementById('diaryText').value.trim();
+    const fileInput = document.getElementById('diaryFile');
+    const emotion = document.getElementById('emotionSelect').value;
+
+    if (text.length === 0 && fileInput.files.length === 0) {
+        alert("Inserisci del testo o carica un file per creare un episodio del diario.");
+        return;
+    }
+
+    const filesData = [];
+
+    for (const file of fileInput.files) {
+        try {
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            filesData.push({ name: file.name, type: file.type, data: base64 });
+        } catch (error) {
+            console.warn("File non leggibile:", file.name);
+        }
+    }
+
+    diaryEntries.unshift({
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        date: new Date().toLocaleString('it-IT'),
+        text: text,
+        emotion: emotion,
+        files: filesData
+    });
+
+    document.getElementById('diaryText').value = '';
+    document.getElementById('diaryFile').value = '';
+    saveToLocalStorage();
+    renderDiaryEntries();
+    updateDashboardCharts();
+
+    alert("Episodio inserito correttamente");
+});
+</script>
+
+</body>
+</html>
