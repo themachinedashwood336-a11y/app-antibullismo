@@ -1303,8 +1303,8 @@ function getDayIndex() {
     return diffDays % motivationalQuotes.length;
 }
 document.addEventListener('DOMContentLoaded', () => {
-    const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
-    document.getElementById('dailyQuote').textContent = motivationalQuotes[randomIndex];
+    const i = getDayIndex() // usa il giorno dell'anno
+    document.getElementById('dailyQuote').textContent = motivationalQuotes[i];
 });
 
 /* -----------------------
