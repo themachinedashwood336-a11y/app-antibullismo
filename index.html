@@ -487,7 +487,26 @@ canvas { max-width:100%; }
    CONFIG
    ----------------------- */
 const APP_VERSION = '2.2';
+/* -----------------------
+   Citazione del Giorno
+   ----------------------- */
+const quotes = [
+  "La gentilezza è una lingua che i sordi possono udire e i ciechi possono vedere. — Mark Twain",
+  "Il coraggio non è non avere paura, ma saperla affrontare. — Nelson Mandela",
+  "Ogni giorno è una nuova possibilità per essere migliori di ieri.",
+  "Non lasciare che il comportamento degli altri distrugga la tua pace interiore. — Dalai Lama",
+  "La forza non viene da ciò che puoi fare, ma da ciò che pensavi di non poter fare."
+];
 
+function updateDailyQuote() {
+  const today = new Date();
+  // indice deterministico: cambia ogni giorno
+  const index = today.getFullYear() * 365 + today.getMonth() * 31 + today.getDate();
+  const quote = quotes[index % quotes.length];
+  document.getElementById('dailyQuote').textContent = quote;
+}
+updateDailyQuote();
+  
 /* -----------------------
    Variabili Globali e Storage
    ----------------------- */
