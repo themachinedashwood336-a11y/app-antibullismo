@@ -1619,26 +1619,6 @@ renderDashboardCharts?.();
 // Fine script
 </script>
 
-document.addEventListener('DOMContentLoaded', () => {
-  const link = document.getElementById('carabinieriLink');
-  if (!link) return;
-  link.addEventListener('click', (e) => {
-    e.preventDefault();
-    const url = link.href;
-    try {
-      if (window.cordova && window.cordova.InAppBrowser) {
-        window.cordova.InAppBrowser.open(url, '_system');
-      } else if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ openExternal: url }));
-      } else {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-    } catch {
-      location.href = url;
-    }
-  });
-});
-</script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const link = document.getElementById('carabinieriLink');
