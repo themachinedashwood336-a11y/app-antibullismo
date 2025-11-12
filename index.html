@@ -1308,6 +1308,9 @@ let motivationalQuotes = [
         const candidate = `${tmpl} ${suf}`;
         if (!motivationalQuotes.includes(candidate)) motivationalQuotes.push(candidate);
         idx++;
+      if (idx > 2000 && motivationalQuotes.length < 365) {
+        motivationalQuotes.push("Prenditi cura di te oggi.");
+    }
     }
 })();
 
