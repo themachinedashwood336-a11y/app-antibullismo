@@ -1639,5 +1639,36 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const link = document.getElementById('carabinieriLink');
+  if (!link) return;
+
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const url = link.href;
+
+    try {
+      // --- CASO 1: Cordova o Capacitor ---
+      if (window.cordova && window.cordova.InAppBrowser) {
+        window.cordova.InAppBrowser.open(url, '_system');
+        return;
+      }
+
+      // --- CASO 2: React Native WebView ---
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ openExternal: url }));
+        return;
+      }
+
+      // --- CASO 3: Browser normale ---
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      // fallback di sicurezza
+      location.href = url;
+    }
+  });
+});
+</script>
 </body>
 </html>
