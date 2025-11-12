@@ -1002,9 +1002,10 @@ document.getElementById('addDiaryBtn').addEventListener('click', async () => {
 
 function renderDiaryEntries() {
     diaryEntriesListDiv.innerHTML = '';
-    if (diaryEntries.length === 0) {
-        diaryEntriesListDiv.innerHTML = '<p style="color:#999;text-align:center;">Nessun episodio registrato. Inizia ora!</p>
-         <p style="text-align:center; margin-top:8px;">
+  if (diaryEntries.length === 0) {
+    diaryEntriesListDiv.innerHTML = `
+        <p style="color:#999;text-align:center;">Nessun episodio registrato. Inizia ora!</p>
+        <p style="text-align:center; margin-top:8px;">
             <a href="https://www.carabinieri.it/in-vostro-aiuto/informazioni/dove-siamo"
                target="_blank" rel="noopener noreferrer"
                style="color:#0284c7; font-weight:bold; text-decoration:underline;">
@@ -1012,8 +1013,8 @@ function renderDiaryEntries() {
             </a>
         </p>
     `;
-        return;
-    }
+    return;
+}
 
     diaryEntries.forEach(entry => {
         const div = document.createElement('div');
