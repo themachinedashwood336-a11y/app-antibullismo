@@ -1004,13 +1004,41 @@ function renderDiaryEntries() {
     if (diaryEntries.length === 0) {
         diaryEntriesListDiv.innerHTML = `
             <p style="color:#999;text-align:center;">Nessun episodio registrato. Inizia ora!</p>
-            <p style="text-align:center; margin-top:8px;">
-                <a href="https://www.carabinieri.it/in-vostro-aiuto/informazioni/dove-siamo"
-                   target="_blank" rel="noopener noreferrer"
-                   style="color:#0284c7; font-weight:bold; text-decoration:underline;">
-                   🔍 Trova qui i contatti email dei Carabinieri
-                </a>
-            </p>
+         <!-- Link Carabinieri sempre visibile -->
+<p id="carabinieriLinkContainer" style="margin-top: 12px; text-align:center;">
+  <a id="carabinieriLink"
+     href="https://www.carabinieri.it/in-vostro-aiuto/informazioni/dove-siamo"
+     style="color:#0284c7; font-weight:bold; text-decoration:underline;">
+     🔍 Trova qui i contatti email dei Carabinieri
+  </a>
+</p>
+
+<script>
+(function(){
+  const link = document.getElementById('carabinieriLink');
+  if (!link) return;
+  link.addEventListener('click', function(e){
+    e.preventDefault();
+    const url = this.href;
+    try {
+      // Se sei in un'app Cordova o Capacitor
+      if (window.cordova && window.cordova.InAppBrowser) {
+        window.cordova.InAppBrowser.open(url, '_system');
+      } else if (window.ReactNativeWebView) {
+        // Caso WebView React Native
+        window.ReactNativeWebView.postMessage(JSON.stringify({ openExternal: url }));
+      } else {
+        // fallback browser
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      // se tutto fallisce, apri nello stesso tab
+      location.href = url;
+    }
+  });
+})();
+</script>
+
         `;
         return;
     }
