@@ -369,7 +369,16 @@ canvas { max-width:100%; }
       <input type="file" id="diaryFile" accept="image/*,video/*,audio/*" multiple>
       <button id="addDiaryBtn" class="primary">Aggiungi Episodio</button>
       <button id="exportToAuthoritiesBtn" class="primary">Crea ZIP con Episodi e Apri Client Email</button>
-      <div id="diaryEntriesList"></div>
+       <div id="diaryEntriesList"></div>
+      
+      <p id="carabinieriLinkContainer" style="margin-top:12px;text-align:center;">
+  <a id="carabinieriLink"
+     href="https://www.carabinieri.it/in-vostro-aiuto/informazioni/dove-siamo"
+     style="color:#0284c7;font-weight:bold;text-decoration:underline;">
+     🔍 Trova qui i contatti email dei Carabinieri
+  </a>
+</p>
+     
     </div>
 
     <div class="card">
@@ -1611,6 +1620,27 @@ renderDashboardCharts?.();
 </script>
 </body>
 </html>
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const link = document.getElementById('carabinieriLink');
+  if (!link) return;
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const url = link.href;
+    try {
+      if (window.cordova && window.cordova.InAppBrowser) {
+        window.cordova.InAppBrowser.open(url, '_system');
+      } else if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ openExternal: url }));
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } catch {
+      location.href = url;
+    }
+  });
+});
 </script>
 </body>
 </html>
