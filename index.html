@@ -1621,24 +1621,36 @@ renderDashboardCharts?.();
 
 <!-- Script per apertura link Carabinieri -->
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('load', () => {
   const link = document.getElementById('carabinieriLink');
-  if (!link) return;
+  if (!link) {
+    console.warn("⚠️ Link Carabinieri non trovato nel DOM");
+    return;
+  }
 
   link.addEventListener('click', (e) => {
     e.preventDefault();
     const url = link.href;
+    console.log("👉 Apertura link Carabinieri:", url);
 
     try {
+      // Cordova o Capacitor
       if (window.cordova && window.cordova.InAppBrowser) {
         window.cordova.InAppBrowser.open(url, '_system');
-      } else if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ openExternal: url }));
-      } else {
-        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
       }
+
+      // React Native WebView
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ openExternal: url }));
+        return;
+      }
+
+      // Browser normale
+      window.open(url, '_blank', 'noopener,noreferrer');
     } catch (err) {
-      location.href = url;
+      console.error("Errore apertura link:", err);
+      location.href = url; // fallback
     }
   });
 });
