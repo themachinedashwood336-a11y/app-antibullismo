@@ -1618,44 +1618,5 @@ renderDashboardCharts?.();
 
 // Fine script
 </script>
-
-<!-- Script per apertura link Carabinieri -->
-<script>
-window.addEventListener('load', () => {
-  const link = document.getElementById('carabinieriLink');
-  if (!link) {
-    console.warn("⚠️ Link Carabinieri non trovato nel DOM");
-    return;
-  }
-
-  link.addEventListener('click', (e) => {
-    e.preventDefault();
-    const url = link.href;
-    console.log("👉 Apertura link Carabinieri:", url);
-
-    try {
-      // Cordova o Capacitor
-      if (window.cordova && window.cordova.InAppBrowser) {
-        window.cordova.InAppBrowser.open(url, '_system');
-        return;
-      }
-
-      // React Native WebView
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ openExternal: url }));
-        return;
-      }
-
-      // Browser normale
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (err) {
-      console.error("Errore apertura link:", err);
-      location.href = url; // fallback
-    }
-  });
-});
-</script>
-</body>
-</html>
 </body>
 </html>
